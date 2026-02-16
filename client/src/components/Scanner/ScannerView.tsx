@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, ArrowUpDown, Filter, Zap, TrendingUp, TrendingDown } from 'lucide-react';
+import { RefreshCw, Zap, TrendingUp, TrendingDown, Search } from 'lucide-react';
 import { ScannedCoin, SortOption, SignalFilter } from '../../types';
 import { MiniSparkline } from '../Charts/MiniSparkline';
 
@@ -46,25 +46,53 @@ const getSignalClass = (signal: string): string => {
   return map[signal] || 'signal-hold';
 };
 
-const getRiskClass = (risk: string): string => {
-  return `risk-${risk.toLowerCase()}`;
-};
+const getRiskClass = (risk: string): string => `risk-${risk.toLowerCase()}`;
 
 const signals: SignalFilter[] = ['ALL', 'STRONG BUY', 'BUY', 'HOLD', 'SELL', 'STRONG SELL'];
+
+const SkeletonRows = () => (
+  <div style={{ padding: '0' }}>
+    {Array.from({ length: 12 }).map((_, i) => (
+      <div key={i} style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        padding: '14px 16px',
+        borderBottom: '1px solid rgba(51, 65, 85, 0.15)',
+        animation: `shimmer 1.5s infinite linear`,
+        animationDelay: `${i * 0.05}s`
+      }}>
+        <div className="skeleton" style={{ width: '24px', height: '14px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '0 0 180px' }}>
+          <div className="skeleton skeleton-circle" style={{ width: '34px', height: '34px', flexShrink: 0 }} />
+          <div>
+            <div className="skeleton" style={{ width: '80px', height: '13px', marginBottom: '4px' }} />
+            <div className="skeleton" style={{ width: '40px', height: '10px' }} />
+          </div>
+        </div>
+        <div className="skeleton" style={{ width: '80px', height: '14px' }} />
+        <div className="skeleton" style={{ width: '60px', height: '22px', borderRadius: '7px' }} />
+        <div className="skeleton" style={{ width: '50px', height: '22px', borderRadius: '7px' }} />
+        <div className="skeleton" style={{ width: '50px', height: '22px', borderRadius: '7px' }} />
+        <div className="skeleton" style={{ width: '70px', height: '14px' }} />
+        <div className="skeleton" style={{ width: '70px', height: '14px' }} />
+        <div className="skeleton" style={{ width: '100px', height: '28px', borderRadius: '4px' }} />
+        <div className="skeleton" style={{ width: '56px', height: '5px', borderRadius: '3px' }} />
+        <div className="skeleton" style={{ width: '56px', height: '5px', borderRadius: '3px' }} />
+        <div className="skeleton" style={{ width: '30px', height: '14px' }} />
+        <div className="skeleton" style={{ width: '32px', height: '22px', borderRadius: '7px' }} />
+        <div className="skeleton" style={{ width: '80px', height: '22px', borderRadius: '7px' }} />
+        <div className="skeleton" style={{ width: '50px', height: '20px', borderRadius: '6px' }} />
+        <div className="skeleton" style={{ width: '30px', height: '14px' }} />
+      </div>
+    ))}
+  </div>
+);
 
 export const ScannerView: React.FC<ScannerViewProps> = ({
   coins, loading, error, sortBy, signalFilter,
   onSortChange, onSignalFilterChange, onCoinClick, onRefresh
 }) => {
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="loading-spinner" />
-        <div className="loading-text">Scanning market momentum...</div>
-        <div className="loading-subtext">Analyzing {50} coins with TA & FA engines</div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -72,7 +100,7 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
         <div className="error-icon">&#9888;&#65039;</div>
         <div className="error-message">{error}</div>
         <button className="retry-btn" onClick={onRefresh}>
-          <RefreshCw size={14} style={{ marginRight: '6px' }} />
+          <RefreshCw size={14} />
           Retry Scan
         </button>
       </div>
@@ -84,11 +112,11 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
       <div className="scanner-header">
         <div className="scanner-title-section">
           <h2 className="scanner-title">
-            <Zap size={22} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} />
-            Momentum Scanner
+            <Zap size={22} style={{ color: 'var(--accent-yellow)' }} />
+            <span className="scanner-title-text">Momentum Scanner</span>
           </h2>
           <p className="scanner-subtitle">
-            Real-time technical & fundamental analysis of top cryptocurrencies
+            Real-time technical & fundamental analysis of top {coins.length || 50} cryptocurrencies
           </p>
         </div>
 
@@ -114,8 +142,16 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
             <option value="market_cap">Sort: Market Cap</option>
           </select>
 
-          <button className="filter-btn" onClick={onRefresh} title="Refresh data">
-            <RefreshCw size={12} />
+          <button 
+            className="filter-btn" 
+            onClick={onRefresh} 
+            title="Refresh data"
+            style={{ padding: '7px 10px' }}
+          >
+            <RefreshCw size={13} style={{ 
+              transition: 'transform 0.3s ease',
+              ...(loading ? { animation: 'spin 1s linear infinite' } : {})
+            }} />
           </button>
         </div>
       </div>
@@ -142,111 +178,112 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
               <th>Potential</th>
             </tr>
           </thead>
-          <tbody>
-            {coins.map((coin, index) => (
-              <tr key={coin.id} onClick={() => onCoinClick(coin.id)}>
-                <td style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
-                  {coin.marketCapRank}
-                </td>
-                <td>
-                  <div className="coin-info">
-                    <img 
-                      className="coin-icon" 
-                      src={coin.image} 
-                      alt={coin.name}
-                      loading="lazy"
-                    />
-                    <div className="coin-name-wrapper">
-                      <span className="coin-name">{coin.name}</span>
-                      <span className="coin-symbol">{coin.symbol}</span>
+          {loading ? (
+            <tbody>
+              <tr><td colSpan={16} style={{ padding: 0 }}><SkeletonRows /></td></tr>
+            </tbody>
+          ) : (
+            <tbody>
+              {coins.map((coin) => (
+                <tr key={coin.id} onClick={() => onCoinClick(coin.id)}>
+                  <td style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: 500 }}>
+                    {coin.marketCapRank}
+                  </td>
+                  <td>
+                    <div className="coin-info">
+                      <img className="coin-icon" src={coin.image} alt={coin.name} loading="lazy" />
+                      <div className="coin-name-wrapper">
+                        <span className="coin-name">{coin.name}</span>
+                        <span className="coin-symbol">{coin.symbol}</span>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td>
-                  <span className="price-value">{formatPrice(coin.currentPrice)}</span>
-                </td>
-                <td>
-                  <span className={`change-badge ${coin.priceChange24h >= 0 ? 'positive' : 'negative'}`}>
-                    {coin.priceChange24h >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                    {Math.abs(coin.priceChange24h).toFixed(2)}%
-                  </span>
-                </td>
-                <td>
-                  <span className={`change-badge ${coin.priceChange7d >= 0 ? 'positive' : 'negative'}`}>
-                    {Math.abs(coin.priceChange7d).toFixed(2)}%
-                  </span>
-                </td>
-                <td>
-                  <span className={`change-badge ${coin.priceChange30d >= 0 ? 'positive' : 'negative'}`}>
-                    {Math.abs(coin.priceChange30d).toFixed(2)}%
-                  </span>
-                </td>
-                <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>
-                  {formatLargeNumber(coin.marketCap)}
-                </td>
-                <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>
-                  {formatLargeNumber(coin.volume24h)}
-                </td>
-                <td>
-                  <MiniSparkline data={coin.sparkline} />
-                </td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <div className="score-bar">
-                      <div 
-                        className={`score-bar-fill ${coin.momentumScore.technicalScore >= 65 ? 'high' : coin.momentumScore.technicalScore >= 45 ? 'medium' : 'low'}`}
-                        style={{ width: `${coin.momentumScore.technicalScore}%` }}
-                      />
-                    </div>
-                    <span style={{ fontSize: '12px', fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
-                      {coin.momentumScore.technicalScore}
+                  </td>
+                  <td>
+                    <span className="price-value">{formatPrice(coin.currentPrice)}</span>
+                  </td>
+                  <td>
+                    <span className={`change-badge ${coin.priceChange24h >= 0 ? 'positive' : 'negative'}`}>
+                      {coin.priceChange24h >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                      {Math.abs(coin.priceChange24h).toFixed(2)}%
                     </span>
-                  </div>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <div className="score-bar">
-                      <div 
-                        className={`score-bar-fill ${coin.momentumScore.fundamentalScore >= 65 ? 'high' : coin.momentumScore.fundamentalScore >= 45 ? 'medium' : 'low'}`}
-                        style={{ width: `${coin.momentumScore.fundamentalScore}%` }}
-                      />
-                    </div>
-                    <span style={{ fontSize: '12px', fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
-                      {coin.momentumScore.fundamentalScore}
+                  </td>
+                  <td>
+                    <span className={`change-badge ${coin.priceChange7d >= 0 ? 'positive' : 'negative'}`}>
+                      {Math.abs(coin.priceChange7d).toFixed(2)}%
                     </span>
-                  </div>
-                </td>
-                <td>
-                  <span className="momentum-badge" style={{
-                    color: coin.momentumScore.overallScore >= 65 ? 'var(--accent-green)' :
-                           coin.momentumScore.overallScore >= 45 ? 'var(--accent-yellow)' : 'var(--accent-red)'
-                  }}>
-                    {coin.momentumScore.overallScore}
-                  </span>
-                </td>
-                <td>
-                  <span className={`grade-badge ${getGradeClass(coin.momentumScore.grade)}`}>
-                    {coin.momentumScore.grade}
-                  </span>
-                </td>
-                <td>
-                  <span className={`signal-badge ${getSignalClass(coin.momentumScore.signal)}`}>
-                    {coin.momentumScore.signal}
-                  </span>
-                </td>
-                <td>
-                  <span className={`risk-badge ${getRiskClass(coin.momentumScore.riskLevel)}`}>
-                    {coin.momentumScore.riskLevel}
-                  </span>
-                </td>
-                <td>
-                  <span className="multiplier-badge">
-                    {coin.momentumScore.potentialMultiplier}x
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+                  </td>
+                  <td>
+                    <span className={`change-badge ${coin.priceChange30d >= 0 ? 'positive' : 'negative'}`}>
+                      {Math.abs(coin.priceChange30d).toFixed(2)}%
+                    </span>
+                  </td>
+                  <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    {formatLargeNumber(coin.marketCap)}
+                  </td>
+                  <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    {formatLargeNumber(coin.volume24h)}
+                  </td>
+                  <td>
+                    <MiniSparkline data={coin.sparkline} />
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div className="score-bar">
+                        <div 
+                          className={`score-bar-fill ${coin.momentumScore.technicalScore >= 65 ? 'high' : coin.momentumScore.technicalScore >= 45 ? 'medium' : 'low'}`}
+                          style={{ width: `${coin.momentumScore.technicalScore}%` }}
+                        />
+                      </div>
+                      <span style={{ fontSize: '12px', fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        {coin.momentumScore.technicalScore}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div className="score-bar">
+                        <div 
+                          className={`score-bar-fill ${coin.momentumScore.fundamentalScore >= 65 ? 'high' : coin.momentumScore.fundamentalScore >= 45 ? 'medium' : 'low'}`}
+                          style={{ width: `${coin.momentumScore.fundamentalScore}%` }}
+                        />
+                      </div>
+                      <span style={{ fontSize: '12px', fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        {coin.momentumScore.fundamentalScore}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="momentum-badge" style={{
+                      color: coin.momentumScore.overallScore >= 65 ? 'var(--accent-emerald)' :
+                             coin.momentumScore.overallScore >= 45 ? 'var(--accent-yellow)' : 'var(--accent-red)'
+                    }}>
+                      {coin.momentumScore.overallScore}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`grade-badge ${getGradeClass(coin.momentumScore.grade)}`}>
+                      {coin.momentumScore.grade}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`signal-badge ${getSignalClass(coin.momentumScore.signal)}`}>
+                      {coin.momentumScore.signal}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`risk-badge ${getRiskClass(coin.momentumScore.riskLevel)}`}>
+                      {coin.momentumScore.riskLevel}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="multiplier-badge">
+                      {coin.momentumScore.potentialMultiplier}x
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          )}
         </table>
       </div>
     </div>
