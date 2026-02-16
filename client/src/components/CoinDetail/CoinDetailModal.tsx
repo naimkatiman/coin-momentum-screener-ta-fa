@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, BarChart3, Activity, Shield, Users, Code, Heart, TrendingUp, Gauge } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import Lottie from 'lottie-react';
+import TradingViewMiniChart from '../Charts/TradingViewMiniChart';
 
 interface CoinDetailModalProps {
   coinId: string;
@@ -83,13 +83,6 @@ export const CoinDetailModal: React.FC<CoinDetailModalProps> = ({ coinId, detail
 
   const { technicalIndicators: ta, fundamentalAnalysis: fa, momentumScore: ms } = detail;
 
-  const chartData = detail.sparkline?.map((price: number, i: number) => ({
-    index: i,
-    price: price,
-  })) || [];
-
-  const priceColor = detail.priceChange24h >= 0 ? '#10b981' : '#f43f5e';
-
   return (
     <div className="detail-overlay" onClick={onClose}>
       <div className="detail-modal" onClick={e => e.stopPropagation()}>
@@ -163,44 +156,20 @@ export const CoinDetailModal: React.FC<CoinDetailModalProps> = ({ coinId, detail
             </div>
           </div>
 
-          {/* Price Chart */}
-          {chartData.length > 0 && (
-            <div className="chart-container">
-              <div className="chart-header">
-                <h3 className="chart-title">7-Day Price Chart</h3>
-              </div>
-              <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={priceColor} stopOpacity={0.15} />
-                      <stop offset="100%" stopColor={priceColor} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="index" hide />
-                  <YAxis hide domain={['dataMin', 'dataMax']} />
-                  <Tooltip
-                    contentStyle={{
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-primary)',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      color: 'var(--text-primary)',
-                    }}
-                    formatter={(value: any) => [formatPrice(Number(value)), 'Price']}
-                    labelFormatter={() => ''}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="price"
-                    stroke={priceColor}
-                    strokeWidth={2}
-                    fill="url(#priceGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+          {/* Price Chart - TradingView Mini Chart Widget */}
+          <div className="chart-container">
+            <div className="chart-header">
+              <h3 className="chart-title">7-Day Price Chart</h3>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Powered by TradingView
+              </span>
             </div>
-          )}
+            <TradingViewMiniChart
+              symbol={detail.symbol}
+              coinId={coinId}
+              height={220}
+            />
+          </div>
 
           {/* TA & FA Grid */}
           <div className="detail-grid">

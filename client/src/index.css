@@ -854,6 +854,38 @@ body {
   letter-spacing: -0.2px;
 }
 
+/* TradingView Mini Chart Widget */
+.tv-mini-chart-wrapper {
+  position: relative;
+  min-height: 220px;
+}
+
+.tv-mini-chart-wrapper .tradingview-widget-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.tv-mini-chart-wrapper .tradingview-widget-container__widget {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.tv-mini-chart-wrapper .tradingview-widget-copyright {
+  font-size: 10px;
+  text-align: center;
+  padding: 4px 0 0;
+  opacity: 0.5;
+}
+
+.tv-mini-chart-wrapper .tradingview-widget-copyright a {
+  color: var(--accent-indigo);
+  text-decoration: none;
+}
+
+.tv-mini-chart-wrapper .tradingview-widget-copyright .blue-text {
+  color: var(--accent-indigo);
+}
+
 /* ============ MOMENTUM GAUGE ============ */
 
 .momentum-overview {
