@@ -126,8 +126,8 @@ function App() {
       )}
 
       <div className="disclaimer">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-          <img src="/coingecko-logo.png" alt="CoinGecko" style={{ width: '18px', height: '18px', borderRadius: '50%' }} />
+        <div className="footer-brand">
+          <img src="/coingecko-logo.png" alt="CoinGecko" />
           <span>Data provided by <a href="https://www.coingecko.com/en/api" target="_blank" rel="noreferrer">CoinGecko API</a></span>
         </div>
         <p>Investment screening tool for educational purposes only. Not financial advice. DYOR.</p>

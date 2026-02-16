@@ -27,7 +27,7 @@ export const GlobalStats: React.FC<GlobalStatsProps> = ({ data, coinCount }) => 
         </div>
         <div className="stat-value">{formatNumber(data.total_market_cap?.usd || 0)}</div>
         <div className={`stat-change ${isPositive ? 'positive' : 'negative'}`}>
-          {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+          {isPositive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
           {marketCapChange?.toFixed(2)}% (24h)
         </div>
       </div>
@@ -42,7 +42,7 @@ export const GlobalStats: React.FC<GlobalStatsProps> = ({ data, coinCount }) => 
 
       <div className="stat-card">
         <div className="stat-label">
-          <img src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png" alt="BTC" style={{ width: '12px', height: '12px', borderRadius: '50%' }} />
+          <BarChart3 size={11} />
           BTC Dominance
         </div>
         <div className="stat-value" style={{ color: 'var(--accent-yellow)' }}>
@@ -52,10 +52,10 @@ export const GlobalStats: React.FC<GlobalStatsProps> = ({ data, coinCount }) => 
 
       <div className="stat-card">
         <div className="stat-label">
-          <img src="https://assets.coingecko.com/coins/images/279/small/ethereum.png" alt="ETH" style={{ width: '12px', height: '12px', borderRadius: '50%' }} />
+          <BarChart3 size={11} />
           ETH Dominance
         </div>
-        <div className="stat-value" style={{ color: 'var(--accent-purple)' }}>
+        <div className="stat-value" style={{ color: 'var(--accent-violet)' }}>
           {data.market_cap_percentage?.eth?.toFixed(1)}%
         </div>
       </div>
