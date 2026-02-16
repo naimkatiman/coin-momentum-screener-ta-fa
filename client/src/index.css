@@ -673,6 +673,31 @@ body {
 
 .mini-sparkline { width: 100px; height: 32px; }
 
+/* TradingView Table Chart (inline in scanner table) */
+.tv-table-chart {
+  position: relative;
+  pointer-events: none;
+}
+
+.tv-table-chart .tradingview-widget-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.tv-table-chart .tradingview-widget-container__widget {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.tv-table-chart .tradingview-widget-copyright {
+  display: none !important;
+}
+
+.scanner-table td:has(.tv-table-chart) {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
 /* ============ DETAIL MODAL ============ */
 
 .detail-overlay {
