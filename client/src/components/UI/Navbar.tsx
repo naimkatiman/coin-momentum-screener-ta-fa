@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, BarChart3, Wallet, RefreshCw } from 'lucide-react';
+import { BarChart3, Wallet, Zap } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: 'scanner' | 'portfolio';
@@ -12,7 +12,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, lastUpda
     <nav className="navbar">
       <div className="navbar-inner">
         <div className="navbar-brand">
-          <div className="navbar-logo">CM</div>
+          <div className="navbar-logo">
+            <Zap size={18} />
+          </div>
           <div>
             <div className="navbar-title">Coin Momentum Screener</div>
             <div className="navbar-subtitle">Technical & Fundamental Analysis</div>
@@ -41,14 +43,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, lastUpda
             <div className="live-indicator">
               <div className="live-dot" />
               <span>Live</span>
-              <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+              <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '11px' }}>
                 {lastUpdated}
               </span>
             </div>
           )}
           <div className="powered-by">
-            <img src="https://static.coingecko.com/s/thumbnail-007177f3eca9ea8e8b8b40dd076e85af5cdd7e29e30517a02beb32e3e5e4c3c3.png" alt="CoinGecko" />
-            <span>CoinGecko</span>
+            <img 
+              src="/coingecko-logo.png" 
+              alt="CoinGecko" 
+              style={{ width: '22px', height: '22px' }}
+            />
+            <span>Powered by <strong style={{ color: 'var(--accent-emerald)' }}>CoinGecko</strong></span>
           </div>
         </div>
       </div>

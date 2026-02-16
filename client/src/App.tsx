@@ -126,8 +126,12 @@ function App() {
       )}
 
       <div className="disclaimer">
-        <p>Powered by <a href="https://www.coingecko.com/en/api" target="_blank" rel="noreferrer">CoinGecko API</a> | This is an investment screening tool for educational purposes. Not financial advice.</p>
-        <p style={{ marginTop: '4px' }}>Built with React, TypeScript & Node.js | Coin Momentum Screener v1.0</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
+          <img src="/coingecko-logo.png" alt="CoinGecko" style={{ width: '18px', height: '18px', borderRadius: '50%' }} />
+          <span>Data provided by <a href="https://www.coingecko.com/en/api" target="_blank" rel="noreferrer">CoinGecko API</a></span>
+        </div>
+        <p>Investment screening tool for educational purposes only. Not financial advice. DYOR.</p>
+        <p style={{ marginTop: '4px', color: 'var(--text-muted)' }}>Built with React, TypeScript & Node.js | Coin Momentum Screener v1.0</p>
       </div>
     </div>
   );

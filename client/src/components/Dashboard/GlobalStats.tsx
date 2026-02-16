@@ -22,7 +22,7 @@ export const GlobalStats: React.FC<GlobalStatsProps> = ({ data, coinCount }) => 
     <div className="global-stats-bar fade-in">
       <div className="stat-card">
         <div className="stat-label">
-          <DollarSign size={12} style={{ display: 'inline', marginRight: '4px' }} />
+          <DollarSign size={11} />
           Total Market Cap
         </div>
         <div className="stat-value">{formatNumber(data.total_market_cap?.usd || 0)}</div>
@@ -34,7 +34,7 @@ export const GlobalStats: React.FC<GlobalStatsProps> = ({ data, coinCount }) => 
 
       <div className="stat-card">
         <div className="stat-label">
-          <Activity size={12} style={{ display: 'inline', marginRight: '4px' }} />
+          <Activity size={11} />
           24h Volume
         </div>
         <div className="stat-value">{formatNumber(data.total_volume?.usd || 0)}</div>
@@ -42,7 +42,7 @@ export const GlobalStats: React.FC<GlobalStatsProps> = ({ data, coinCount }) => 
 
       <div className="stat-card">
         <div className="stat-label">
-          <BarChart3 size={12} style={{ display: 'inline', marginRight: '4px' }} />
+          <img src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png" alt="BTC" style={{ width: '12px', height: '12px', borderRadius: '50%' }} />
           BTC Dominance
         </div>
         <div className="stat-value" style={{ color: 'var(--accent-yellow)' }}>
@@ -52,7 +52,7 @@ export const GlobalStats: React.FC<GlobalStatsProps> = ({ data, coinCount }) => 
 
       <div className="stat-card">
         <div className="stat-label">
-          <BarChart3 size={12} style={{ display: 'inline', marginRight: '4px' }} />
+          <img src="https://assets.coingecko.com/coins/images/279/small/ethereum.png" alt="ETH" style={{ width: '12px', height: '12px', borderRadius: '50%' }} />
           ETH Dominance
         </div>
         <div className="stat-value" style={{ color: 'var(--accent-purple)' }}>
@@ -62,7 +62,7 @@ export const GlobalStats: React.FC<GlobalStatsProps> = ({ data, coinCount }) => 
 
       <div className="stat-card">
         <div className="stat-label">
-          <Coins size={12} style={{ display: 'inline', marginRight: '4px' }} />
+          <Coins size={11} />
           Coins Scanned
         </div>
         <div className="stat-value" style={{ color: 'var(--accent-cyan)' }}>
