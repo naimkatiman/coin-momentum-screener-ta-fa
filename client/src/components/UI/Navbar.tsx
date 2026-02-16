@@ -12,9 +12,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, lastUpda
     <nav className="navbar">
       <div className="navbar-inner">
         <div className="navbar-brand">
-          <div className="navbar-logo">
-            <Zap size={18} />
-          </div>
+          <img 
+            className="navbar-logo-img"
+            src="/coingecko-logo.png" 
+            alt="CoinGecko" 
+          />
           <div>
             <div className="navbar-title">Coin Momentum Screener</div>
             <div className="navbar-subtitle">Technical & Fundamental Analysis</div>
@@ -34,7 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, lastUpda
             onClick={() => onTabChange('portfolio')}
           >
             <Wallet size={14} />
-            Portfolio Simulator
+            Portfolio
           </button>
         </div>
 
@@ -43,7 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, lastUpda
             <div className="live-indicator">
               <div className="live-dot" />
               <span>Live</span>
-              <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '11px' }}>
+              <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '10.5px' }}>
                 {lastUpdated}
               </span>
             </div>
@@ -52,7 +54,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, lastUpda
             <img 
               src="/coingecko-logo.png" 
               alt="CoinGecko" 
-              style={{ width: '22px', height: '22px' }}
             />
             <span>Powered by <strong style={{ color: 'var(--accent-emerald)' }}>CoinGecko</strong></span>
           </div>

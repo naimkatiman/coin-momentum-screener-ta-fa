@@ -1,6 +1,39 @@
 import React from 'react';
-import { Wallet, TrendingUp, Target, Clock, Shield, RefreshCw } from 'lucide-react';
+import { Wallet, TrendingUp, Target, Clock, Shield, RefreshCw, AlertTriangle } from 'lucide-react';
+import Lottie from 'lottie-react';
 import { PortfolioSimulation } from '../../types';
+
+// Simple pulsing animation for portfolio loading
+const portfolioLoadingData = {
+  v: "5.7.4", fr: 30, ip: 0, op: 60, w: 160, h: 160, nm: "wallet",
+  layers: [{
+    ty: 4, nm: "ring", ip: 0, op: 60, st: 0,
+    ks: {
+      o: { a: 1, k: [{ t: 0, s: [40], e: [80] }, { t: 30, s: [80], e: [40] }, { t: 60, s: [40] }] },
+      p: { a: 0, k: [80, 80] },
+      s: { a: 1, k: [{ t: 0, s: [80, 80], e: [100, 100] }, { t: 30, s: [100, 100], e: [80, 80] }, { t: 60, s: [80, 80] }] },
+      r: { a: 1, k: [{ t: 0, s: [0], e: [360] }, { t: 60, s: [360] }] }
+    },
+    shapes: [{
+      ty: "el", p: { a: 0, k: [0, 0] }, s: { a: 0, k: [80, 80] }
+    }, {
+      ty: "st", c: { a: 0, k: [0.39, 0.4, 0.95, 1] }, o: { a: 0, k: 100 }, w: { a: 0, k: 3 },
+      d: [{ n: "d", nm: "dash", v: { a: 0, k: 20 } }, { n: "g", nm: "gap", v: { a: 0, k: 10 } }]
+    }]
+  }, {
+    ty: 4, nm: "center", ip: 0, op: 60, st: 0,
+    ks: {
+      o: { a: 1, k: [{ t: 0, s: [60], e: [100] }, { t: 30, s: [100], e: [60] }, { t: 60, s: [60] }] },
+      p: { a: 0, k: [80, 80] },
+      s: { a: 0, k: [100, 100] }, r: { a: 0, k: 0 }
+    },
+    shapes: [{
+      ty: "el", p: { a: 0, k: [0, 0] }, s: { a: 0, k: [24, 24] }
+    }, {
+      ty: "fl", c: { a: 0, k: [0.39, 0.4, 0.95, 1] }, o: { a: 0, k: 100 }
+    }]
+  }]
+};
 
 interface PortfolioViewProps {
   portfolio: PortfolioSimulation | null;
@@ -16,7 +49,9 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, loading
   if (loading || !portfolio) {
     return (
       <div className="loading-container">
-        <div className="loading-spinner" />
+        <div className="lottie-loading">
+          <Lottie animationData={portfolioLoadingData} loop />
+        </div>
         <div className="loading-text">Building optimal portfolio...</div>
         <div className="loading-subtext">Analyzing momentum signals for best allocation</div>
       </div>
@@ -39,9 +74,9 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, loading
           Top coins selected by combined Technical & Fundamental Analysis.
         </p>
 
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '24px' }}>
-          <button className="filter-btn active" onClick={onRefresh}>
-            <RefreshCw size={12} style={{ marginRight: '4px' }} />
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
+          <button className="retry-btn" onClick={onRefresh} style={{ fontSize: '12px', padding: '8px 20px' }}>
+            <RefreshCw size={13} />
             Recalculate
           </button>
         </div>
@@ -49,7 +84,7 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, loading
         <div className="portfolio-stats">
           <div className="portfolio-stat">
             <div className="portfolio-stat-label">
-              <Wallet size={12} style={{ display: 'inline', marginRight: '4px' }} />
+              <Wallet size={11} />
               Projected Value
             </div>
             <div className="portfolio-stat-value" style={{ 
@@ -61,7 +96,7 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, loading
 
           <div className="portfolio-stat">
             <div className="portfolio-stat-label">
-              <TrendingUp size={12} style={{ display: 'inline', marginRight: '4px' }} />
+              <TrendingUp size={11} />
               Projected Return
             </div>
             <div className="portfolio-stat-value" style={{ 
@@ -73,8 +108,8 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, loading
 
           <div className="portfolio-stat">
             <div className="portfolio-stat-label">
-              <Clock size={12} style={{ display: 'inline', marginRight: '4px' }} />
-              Est. Days to Target
+              <Clock size={11} />
+              Days to Target
             </div>
             <div className="portfolio-stat-value" style={{ color: 'var(--accent-cyan)' }}>
               {portfolio.projectedDays}
@@ -83,7 +118,7 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, loading
 
           <div className="portfolio-stat">
             <div className="portfolio-stat-label">
-              <Shield size={12} style={{ display: 'inline', marginRight: '4px' }} />
+              <Shield size={11} />
               Risk Score
             </div>
             <div className="portfolio-stat-value" style={{ color: riskColor }}>
@@ -94,9 +129,9 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, loading
 
         {/* Allocation Table */}
         {portfolio.allocations.length > 0 && (
-          <div style={{ marginTop: '32px', textAlign: 'left' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)' }}>
-              <Target size={16} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} />
+          <div style={{ marginTop: '28px', textAlign: 'left' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Target size={15} />
               Recommended Allocation
             </h3>
             <table className="allocation-table">
@@ -116,34 +151,35 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, loading
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ 
-                          width: '24px', 
-                          height: '24px', 
+                          width: '22px', 
+                          height: '22px', 
                           borderRadius: '50%',
-                          background: `hsl(${i * 72}, 70%, 50%)`,
+                          background: `hsl(${i * 72}, 65%, 50%)`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '10px',
+                          fontSize: '9px',
                           fontWeight: 700,
-                          color: 'white'
+                          color: 'white',
+                          flexShrink: 0,
                         }}>
                           {i + 1}
                         </span>
                         <div>
-                          <div style={{ fontWeight: 600 }}>{alloc.name}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                          <div style={{ fontWeight: 600, fontSize: '13px' }}>{alloc.name}</div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                             {alloc.symbol}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, fontSize: '12.5px' }}>
                         {alloc.allocationPercent.toFixed(1)}%
                       </span>
                     </td>
                     <td>
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12.5px' }}>
                         {formatCurrency(alloc.investedAmount)}
                       </span>
                     </td>
@@ -151,6 +187,7 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, loading
                       <span style={{ 
                         fontFamily: "'JetBrains Mono', monospace", 
                         fontWeight: 600,
+                        fontSize: '12.5px',
                         color: alloc.currentValue > alloc.investedAmount ? 'var(--accent-green)' : 'var(--accent-red)'
                       }}>
                         {formatCurrency(alloc.currentValue)}
@@ -167,7 +204,7 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, loading
                           className="allocation-bar" 
                           style={{ 
                             width: `${alloc.allocationPercent}%`,
-                            background: `hsl(${i * 72}, 70%, 50%)`
+                            background: `hsl(${i * 72}, 65%, 50%)`
                           }} 
                         />
                       </div>
@@ -180,17 +217,21 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, loading
         )}
 
         <div style={{ 
-          marginTop: '24px', 
-          padding: '16px', 
-          background: 'rgba(245, 158, 11, 0.08)', 
-          border: '1px solid rgba(245, 158, 11, 0.2)',
-          borderRadius: 'var(--radius-md)',
-          fontSize: '12px',
+          marginTop: '20px', 
+          padding: '14px 16px', 
+          background: 'rgba(251, 191, 36, 0.06)', 
+          border: '1px solid rgba(251, 191, 36, 0.15)',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: '11.5px',
           color: 'var(--accent-yellow)',
-          textAlign: 'center'
+          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px'
         }}>
-          &#9888;&#65039; This is a simulated portfolio based on momentum analysis. Past performance does not guarantee future results. 
-          Always do your own research (DYOR) before investing.
+          <AlertTriangle size={14} />
+          Simulated portfolio based on momentum analysis. Past performance does not guarantee future results. DYOR.
         </div>
       </div>
     </div>
