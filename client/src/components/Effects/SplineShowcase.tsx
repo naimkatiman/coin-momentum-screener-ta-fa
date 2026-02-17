@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Cuboid, TrendingUp } from 'lucide-react';
+import { Cuboid } from 'lucide-react';
 import { PortfolioSimulation } from '../../types';
 
 const sceneUrl = process.env.REACT_APP_SPLINE_SCENE_URL;
@@ -9,77 +9,86 @@ interface SplineShowcaseProps {
 }
 
 interface SplinePoint {
-  x: number;
-  y: number;
   symbol: string;
+  name: string;
   allocation: number;
   returnPercent: number;
 }
 
 const defaultPoints: SplinePoint[] = [
-  { x: 8, y: 62, symbol: 'A', allocation: 18, returnPercent: 8 },
-  { x: 24, y: 54, symbol: 'B', allocation: 24, returnPercent: 14 },
-  { x: 40, y: 48, symbol: 'C', allocation: 22, returnPercent: 11 },
-  { x: 56, y: 44, symbol: 'D', allocation: 16, returnPercent: 20 },
-  { x: 72, y: 35, symbol: 'E', allocation: 12, returnPercent: 26 },
-  { x: 92, y: 30, symbol: 'F', allocation: 8, returnPercent: 30 },
+  { symbol: 'BTC', name: 'Bitcoin', allocation: 26, returnPercent: 8 },
+  { symbol: 'ETH', name: 'Ethereum', allocation: 22, returnPercent: 11 },
+  { symbol: 'SOL', name: 'Solana', allocation: 18, returnPercent: 17 },
+  { symbol: 'LINK', name: 'Chainlink', allocation: 14, returnPercent: 9 },
+  { symbol: 'AVAX', name: 'Avalanche', allocation: 12, returnPercent: 13 },
+  { symbol: 'XRP', name: 'XRP', allocation: 8, returnPercent: 7 },
 ];
 
-const formatCompactCurrency = (value: number) => {
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
-  if (value >= 1e3) return `$${(value / 1e3).toFixed(2)}K`;
-  return `$${value.toFixed(2)}`;
-};
+interface PlotPoint extends SplinePoint {
+  x: number;
+  y: number;
+}
 
-const toSplinePath = (points: SplinePoint[]) => {
+const toLinePath = (points: PlotPoint[]) => {
   if (points.length < 2) return '';
 
-  let path = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const p0 = points[i - 1] || points[i];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[i + 2] || p2;
-
-    const cp1x = p1.x + (p2.x - p0.x) / 6;
-    const cp1y = p1.y + (p2.y - p0.y) / 6;
-    const cp2x = p2.x - (p3.x - p1.x) / 6;
-    const cp2y = p2.y - (p3.y - p1.y) / 6;
-
-    path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
-  }
-
-  return path;
+  return points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
 };
 
 export const SplineShowcase: React.FC<SplineShowcaseProps> = ({ portfolio }) => {
-  const dataPoints = useMemo(() => {
-    if (!portfolio?.allocations?.length) {
-      return defaultPoints;
-    }
+  const chartModel = useMemo(() => {
+    const points: SplinePoint[] = portfolio?.allocations?.length
+      ? [...portfolio.allocations]
+          .sort((a, b) => b.allocationPercent - a.allocationPercent)
+          .slice(0, 6)
+          .map((allocation) => ({
+            symbol: allocation.symbol.toUpperCase(),
+            name: allocation.name,
+            allocation: allocation.allocationPercent,
+            returnPercent: allocation.returnPercent,
+          }))
+      : defaultPoints;
 
-    const sorted = [...portfolio.allocations]
-      .sort((a, b) => b.allocationPercent - a.allocationPercent)
-      .slice(0, 6);
+    const left = 14;
+    const right = 96;
+    const top = 12;
+    const bottom = 74;
+    const returns = points.map((point) => point.returnPercent);
+    const rawMin = Math.min(...returns, 0);
+    const rawMax = Math.max(...returns, 0);
+    const padding = Math.max((rawMax - rawMin) * 0.16, 4);
+    const domainMin = Math.floor((rawMin - padding) / 5) * 5;
+    const domainMax = Math.ceil((rawMax + padding) / 5) * 5;
+    const domainSpan = Math.max(domainMax - domainMin, 1);
 
-    const scores = sorted.map((allocation) => allocation.returnPercent * 0.78 + allocation.allocationPercent * 0.45);
-    const min = Math.min(...scores);
-    const max = Math.max(...scores);
-    const spread = Math.max(max - min, 1);
+    const yFromValue = (value: number) => top + ((domainMax - value) / domainSpan) * (bottom - top);
 
-    return sorted.map((allocation, index) => {
-      const x = sorted.length === 1 ? 50 : 8 + (84 / (sorted.length - 1)) * index;
-      const normalized = (scores[index] - min) / spread;
-
+    const plottedPoints: PlotPoint[] = points.map((point, index) => {
+      const x = points.length === 1 ? (left + right) / 2 : left + ((right - left) / (points.length - 1)) * index;
       return {
+        ...point,
         x,
-        y: 68 - normalized * 36,
-        symbol: allocation.symbol.toUpperCase(),
-        allocation: allocation.allocationPercent,
-        returnPercent: allocation.returnPercent,
+        y: yFromValue(point.returnPercent),
       };
     });
+
+    const yTicks = Array.from({ length: 5 }, (_, index) => {
+      const value = domainMin + ((domainMax - domainMin) / 4) * index;
+      return {
+        value,
+        y: yFromValue(value),
+      };
+    });
+
+    return {
+      points: plottedPoints,
+      yTicks,
+      left,
+      right,
+      top,
+      bottom,
+      zeroY: yFromValue(0),
+    };
   }, [portfolio]);
 
   if (sceneUrl) {
@@ -94,14 +103,9 @@ export const SplineShowcase: React.FC<SplineShowcaseProps> = ({ portfolio }) => 
     );
   }
 
-  const linePath = toSplinePath(dataPoints);
-  const areaPath = `${linePath} L ${dataPoints[dataPoints.length - 1].x} 92 L ${dataPoints[0].x} 92 Z`;
-  const portfolioGrowth = portfolio
-    ? ((portfolio.currentValue - portfolio.initialInvestment) / Math.max(portfolio.initialInvestment, 1)) * 100
-    : null;
-  const portfolioProgress = portfolio
-    ? (portfolio.currentValue / Math.max(portfolio.targetAmount, 1)) * 100
-    : null;
+  const { points, yTicks, left, right, top, bottom, zeroY } = chartModel;
+  const linePath = toLinePath(points);
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${bottom} L ${points[0].x} ${bottom} Z`;
 
   return (
     <div className="spline-fallback spline-portfolio-fallback">
@@ -110,8 +114,8 @@ export const SplineShowcase: React.FC<SplineShowcaseProps> = ({ portfolio }) => 
           <Cuboid size={20} />
         </div>
         <div>
-          <h3>Portfolio Spline Flow</h3>
-          <p>Curve built from allocation weight and projected return per asset.</p>
+          <h3>Simple Portfolio View</h3>
+          <p>Each point is a coin. Left-to-right shows portfolio share, height shows expected return.</p>
         </div>
       </div>
 
@@ -129,44 +133,77 @@ export const SplineShowcase: React.FC<SplineShowcaseProps> = ({ portfolio }) => 
             </linearGradient>
           </defs>
 
-          {[18, 34, 50, 66, 82].map((y) => (
-            <line key={y} x1="4" y1={y} x2="96" y2={y} className="spline-grid-line" />
+          {yTicks.map((tick) => (
+            <line key={tick.value} x1={left} y1={tick.y} x2={right} y2={tick.y} className="spline-grid-line" />
           ))}
+
+          <line x1={left} y1={top} x2={left} y2={bottom} className="spline-axis-line" />
+          <line x1={left} y1={bottom} x2={right} y2={bottom} className="spline-axis-line" />
+          {zeroY >= top && zeroY <= bottom && (
+            <line x1={left} y1={zeroY} x2={right} y2={zeroY} className="spline-zero-line" />
+          )}
+
+          {yTicks.map((tick) => (
+            <text
+              key={`y-${tick.value}`}
+              x={left - 1}
+              y={tick.y + 0.8}
+              className="spline-y-tick-label"
+              textAnchor="end"
+            >
+              {`${Math.round(tick.value)}%`}
+            </text>
+          ))}
+
+          {points.map((point) => (
+            <text key={`x-${point.symbol}`} x={point.x} y={bottom + 4.8} className="spline-x-tick-label" textAnchor="middle">
+              {point.symbol}
+            </text>
+          ))}
+
+          <text x={(left + right) / 2} y={94} className="spline-axis-title" textAnchor="middle">
+            Coins
+          </text>
+          <text
+            x={3.4}
+            y={(top + bottom) / 2}
+            className="spline-axis-title"
+            textAnchor="middle"
+            transform={`rotate(-90 3.4 ${(top + bottom) / 2})`}
+          >
+            Expected Return
+          </text>
 
           <path d={areaPath} className="spline-area-path" />
           <path d={linePath} className="spline-line-path" />
 
-          {dataPoints.map((point) => (
+          {points.map((point) => (
             <g key={`${point.symbol}-${point.x}`}>
               <circle cx={point.x} cy={point.y} r="1.3" className="spline-node-core" />
               <circle cx={point.x} cy={point.y} r="2.2" className="spline-node-ring" />
+              <text x={point.x} y={point.y - 3.2} className="spline-point-label" textAnchor="middle">
+                {point.symbol}
+              </text>
+              <title>
+                {`${point.name}: ${point.allocation.toFixed(1)}% of portfolio, ${point.returnPercent.toFixed(1)}% expected return`}
+              </title>
             </g>
           ))}
         </svg>
       </div>
 
-      <div className="spline-footer">
-        <div className="spline-pills">
-          {dataPoints.slice(0, 4).map((point) => (
-            <span className="spline-pill" key={`${point.symbol}-pill`}>
-              {point.symbol} {point.allocation.toFixed(1)}%
+      <div className="spline-chart-legend" role="list" aria-label="Coin legend">
+        {points.map((point) => (
+          <div key={`legend-${point.symbol}`} className="spline-chart-legend-item" role="listitem">
+            <span className="spline-chart-legend-dot" aria-hidden="true" />
+            <span className="spline-chart-legend-symbol">{point.symbol}</span>
+            <span className="spline-chart-legend-meta">
+              {point.allocation.toFixed(1)}% share | {point.returnPercent.toFixed(1)}% expected
             </span>
-          ))}
-        </div>
-
-        <div className="spline-metrics">
-          <span className="spline-metric">
-            <TrendingUp size={13} />
-            Growth {portfolioGrowth !== null ? `${portfolioGrowth >= 0 ? '+' : ''}${portfolioGrowth.toFixed(1)}%` : 'pending'}
-          </span>
-          <span className="spline-metric">
-            Target {portfolioProgress !== null ? `${portfolioProgress.toFixed(1)}%` : 'pending'}
-          </span>
-          <span className="spline-metric">
-            {portfolio ? formatCompactCurrency(portfolio.currentValue) : 'Awaiting portfolio model'}
-          </span>
-        </div>
+          </div>
+        ))}
       </div>
+
     </div>
   );
 };

@@ -114,6 +114,16 @@ const NON_TRADABLE_SYMBOLS = new Set<string>([
   'PYUSD',
 ]);
 
+const INVALID_WIDGET_SYMBOLS = new Set<string>();
+
+export function markTradingViewSymbolInvalid(tvSymbol: string): void {
+  INVALID_WIDGET_SYMBOLS.add(tvSymbol);
+}
+
+export function isTradingViewSymbolInvalid(tvSymbol: string): boolean {
+  return INVALID_WIDGET_SYMBOLS.has(tvSymbol);
+}
+
 export function resolveTradingViewSymbol(coinId: string, symbol: string): string | null {
   const normalizedId = coinId.toLowerCase();
   const mapped = SYMBOL_MAP[normalizedId];
@@ -128,5 +138,7 @@ export function resolveTradingViewSymbol(coinId: string, symbol: string): string
 
   if (NON_TRADABLE_SYMBOLS.has(normalizedSymbol)) return null;
 
-  return `BINANCE:${normalizedSymbol}USDT`;
+  // Avoid guessed ticker pairs because many CoinGecko symbols are not listed on TradingView,
+  // which produces noisy "Invalid symbol" widgets. Unmapped assets use sparkline fallback.
+  return null;
 }

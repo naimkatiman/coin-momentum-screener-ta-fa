@@ -3,7 +3,7 @@ import Lenis from 'lenis';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Brain, Radar, Sparkles } from 'lucide-react';
+import { ArrowRight, Brain, Sparkles } from 'lucide-react';
 import { Navbar } from './components/UI/Navbar';
 import { GlobalStats } from './components/Dashboard/GlobalStats';
 import { ScannerView } from './components/Scanner/ScannerView';
@@ -244,7 +244,11 @@ function App() {
   }, [coins, globalData]);
 
   const marketPulseLabel =
-    marketIntelligence.pulse >= 2 ? 'Risk-on rotation' : marketIntelligence.pulse <= -2 ? 'Defensive tape' : 'Mixed momentum';
+    marketIntelligence.pulse >= 2
+      ? 'Market is leaning bullish'
+      : marketIntelligence.pulse <= -2
+        ? 'Market is leaning cautious'
+        : 'Market direction is mixed';
 
   return (
     <div className="app-container" ref={appRef}>
@@ -258,39 +262,39 @@ function App() {
           <div className="hero-copy">
             <span className="hero-chip hero-animate">
               <Sparkles size={14} />
-              Real-time market intelligence
+              Live crypto market snapshot
             </span>
 
             <h1 className="hero-title">
-              <span className="hero-animate">Signal-first crypto screening</span>
-              <span className="hero-gradient hero-animate">crafted like a portfolio flagship.</span>
+              <span className="hero-animate">Find strong crypto opportunities</span>
+              <span className="hero-gradient hero-animate">in one clear dashboard.</span>
             </h1>
 
             <p className="hero-subtitle hero-animate">
-              Blend technical structure, fundamental quality, and conviction scoring in one cinematic control surface.
+              See trend strength, project quality, and confidence in one simple view.
             </p>
 
             <div className="hero-actions hero-animate">
               <button className="hero-btn hero-btn-primary" onClick={handleLaunchScanner}>
-                Launch Scanner
+                Start Scan
                 <ArrowRight size={16} />
               </button>
               <button
                 className="hero-btn hero-btn-ghost"
                 onClick={() => handleTabChange(activeTab === 'scanner' ? 'portfolio' : 'scanner')}
               >
-                {activeTab === 'scanner' ? 'Open Portfolio Lab' : 'Return to Scanner'}
+                {activeTab === 'scanner' ? 'Open Portfolio View' : 'Back to Scanner'}
               </button>
             </div>
 
             <div className="hero-intelligence-grid hero-animate">
               <article className="hero-intel-card">
-                <span>Global Market Cap</span>
+                <span>Total Crypto Market Value</span>
                 <strong>{formatCompactCurrency(marketIntelligence.marketCap)}</strong>
-                <p>Live macro liquidity context</p>
+                <p>How big the crypto market is right now</p>
               </article>
               <article className="hero-intel-card">
-                <span>Market Pulse</span>
+                <span>Market Mood</span>
                 <strong className={marketIntelligence.pulse >= 0 ? 'positive' : 'negative'}>
                   {marketIntelligence.pulse >= 0 ? '+' : ''}
                   {marketIntelligence.pulse.toFixed(2)}%
@@ -298,19 +302,19 @@ function App() {
                 <p>{marketPulseLabel}</p>
               </article>
               <article className="hero-intel-card">
-                <span>Bullish Universe</span>
+                <span>Coins Looking Strong</span>
                 <strong>{marketIntelligence.bullishUniverse}</strong>
-                <p>Coins flagged BUY / STRONG BUY</p>
+                <p>Marked BUY or STRONG BUY</p>
               </article>
               <article className="hero-intel-card">
-                <span>Confidence Set</span>
+                <span>High-Confidence Picks</span>
                 <strong>{marketIntelligence.highConfidence}</strong>
-                <p>Assets above 70% signal confidence</p>
+                <p>Confidence score above 70%</p>
               </article>
               <article className="hero-intel-card">
-                <span>Average Momentum</span>
+                <span>Average Trend Strength</span>
                 <strong>{marketIntelligence.avgMomentum.toFixed(1)}</strong>
-                <p>Across active watchlist</p>
+                <p>Across your active watchlist</p>
               </article>
             </div>
           </div>
@@ -319,13 +323,9 @@ function App() {
             <div className="scene-shell">
               <div className="scene-label">
                 <Brain size={15} />
-                Figma-grade spatial composition
+                Quick portfolio visual
               </div>
               <SplineShowcase portfolio={portfolio} />
-              <div className="scene-meta">
-                <Radar size={14} />
-                WebGL + Spline stage for immersive storytelling
-              </div>
             </div>
           </div>
         </div>

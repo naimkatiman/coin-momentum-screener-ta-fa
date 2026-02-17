@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState, memo } from 'react';
 import { MiniSparkline } from './MiniSparkline';
-import { resolveTradingViewSymbol } from './tradingViewSymbols';
+import {
+  isTradingViewSymbolInvalid,
+  markTradingViewSymbolInvalid,
+  resolveTradingViewSymbol,
+} from './tradingViewSymbols';
 
 interface TradingViewTableChartProps {
   symbol: string;
@@ -41,7 +45,7 @@ const TradingViewTableChart: React.FC<TradingViewTableChartProps> = ({
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
-  const [isInView, setIsInView] = useState(false);
+  const [hasEnteredView, setHasEnteredView] = useState(false);
   const [useSparklineFallback, setUseSparklineFallback] = useState(false);
 
   const isBullish = useMemo(() => {
@@ -54,38 +58,47 @@ const TradingViewTableChart: React.FC<TradingViewTableChartProps> = ({
   const tvSymbol = useMemo(() => resolveTradingViewSymbol(coinId, symbol), [coinId, symbol]);
 
   useEffect(() => {
+    setHasEnteredView(false);
     setUseSparklineFallback(false);
   }, [coinId, symbol]);
 
   useEffect(() => {
     const root = rootRef.current;
-    if (!root) return;
+    if (!root || hasEnteredView) return;
 
     if (!('IntersectionObserver' in window)) {
-      setIsInView(true);
+      setHasEnteredView(true);
       return;
     }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsInView(entry.isIntersecting);
+        if (!entry.isIntersecting) return;
+        setHasEnteredView(true);
+        observer.disconnect();
       },
       {
         root: null,
-        rootMargin: '160px 0px',
+        rootMargin: '220px 0px',
         threshold: 0.01,
       }
     );
 
     observer.observe(root);
     return () => observer.disconnect();
-  }, []);
+  }, [hasEnteredView]);
 
   useEffect(() => {
     const widgetHost = widgetRef.current;
     if (!widgetHost) return;
 
-    if (!tvSymbol || !isInView || useSparklineFallback) {
+    if (!tvSymbol || !hasEnteredView || useSparklineFallback) {
+      widgetHost.innerHTML = '';
+      return;
+    }
+
+    if (isTradingViewSymbolInvalid(tvSymbol)) {
+      setUseSparklineFallback(true);
       widgetHost.innerHTML = '';
       return;
     }
@@ -127,20 +140,33 @@ const TradingViewTableChart: React.FC<TradingViewTableChartProps> = ({
     widgetContainer.appendChild(script);
     widgetHost.appendChild(widgetContainer);
 
-    const fallbackTimer = window.setTimeout(() => {
+    const detectInvalidSymbol = () => {
       const text = widgetHost.textContent?.toLowerCase() || '';
       if (text.includes('invalid symbol') || text.includes('no data here yet')) {
+        markTradingViewSymbolInvalid(tvSymbol);
         setUseSparklineFallback(true);
+        return true;
       }
-    }, 2600);
+      return false;
+    };
+
+    const invalidTextObserver = new MutationObserver(() => {
+      detectInvalidSymbol();
+    });
+    invalidTextObserver.observe(widgetHost, { childList: true, subtree: true, characterData: true });
+
+    const fallbackTimer = window.setTimeout(() => {
+      detectInvalidSymbol();
+    }, 3200);
 
     return () => {
       window.clearTimeout(fallbackTimer);
+      invalidTextObserver.disconnect();
       widgetHost.innerHTML = '';
     };
-  }, [height, isInView, tvSymbol, trendColors, useSparklineFallback, width]);
+  }, [hasEnteredView, height, tvSymbol, trendColors, useSparklineFallback, width]);
 
-  const shouldUseSparkline = useSparklineFallback || !tvSymbol || !isInView;
+  const shouldUseSparkline = useSparklineFallback || !tvSymbol || !hasEnteredView;
 
   return (
     <div

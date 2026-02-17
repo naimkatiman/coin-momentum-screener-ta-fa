@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState, memo } from 'react';
 import { MiniSparkline } from './MiniSparkline';
-import { resolveTradingViewSymbol } from './tradingViewSymbols';
+import {
+  isTradingViewSymbolInvalid,
+  markTradingViewSymbolInvalid,
+  resolveTradingViewSymbol,
+} from './tradingViewSymbols';
 
 interface TradingViewMiniChartProps {
   symbol: string;
@@ -60,6 +64,12 @@ const TradingViewMiniChart: React.FC<TradingViewMiniChartProps> = ({
       return;
     }
 
+    if (isTradingViewSymbolInvalid(tvSymbol)) {
+      setUseSparklineFallback(true);
+      container.innerHTML = '';
+      return;
+    }
+
     container.innerHTML = '';
 
     const widgetContainer = document.createElement('div');
@@ -103,15 +113,28 @@ const TradingViewMiniChart: React.FC<TradingViewMiniChartProps> = ({
     widgetContainer.appendChild(script);
     container.appendChild(widgetContainer);
 
-    const fallbackTimer = window.setTimeout(() => {
+    const detectInvalidSymbol = () => {
       const text = container.textContent?.toLowerCase() || '';
       if (text.includes('invalid symbol') || text.includes('no data here yet')) {
+        markTradingViewSymbolInvalid(tvSymbol);
         setUseSparklineFallback(true);
+        return true;
       }
-    }, 2600);
+      return false;
+    };
+
+    const invalidTextObserver = new MutationObserver(() => {
+      detectInvalidSymbol();
+    });
+    invalidTextObserver.observe(container, { childList: true, subtree: true, characterData: true });
+
+    const fallbackTimer = window.setTimeout(() => {
+      detectInvalidSymbol();
+    }, 3200);
 
     return () => {
       window.clearTimeout(fallbackTimer);
+      invalidTextObserver.disconnect();
       container.innerHTML = '';
     };
   }, [tvSymbol, width, height, trendColors, useSparklineFallback]);

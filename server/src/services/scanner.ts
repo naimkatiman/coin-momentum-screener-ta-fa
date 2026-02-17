@@ -289,7 +289,7 @@ export class ScannerService {
       high: 1.24,
     };
     const returnAdjustmentByProfile: Record<PortfolioRiskProfile, number> = {
-      low: 0.88,
+      low: 1,
       medium: 1,
       high: 1.12,
     };
@@ -330,13 +330,14 @@ export class ScannerService {
     const allocations = weighted.map(({ coin, weight }) => {
       const allocationPercent = (weight / totalWeight) * 100;
       const investedAmount = (allocationPercent / 100) * initialInvestment;
-      const projectedReturn = coin.momentumScore.potentialMultiplier * returnAdjustmentByProfile[riskProfile];
+      const projectedReturn = Math.max(1, coin.momentumScore.potentialMultiplier * returnAdjustmentByProfile[riskProfile]);
       const currentValue = investedAmount * projectedReturn;
       
       return {
         coinId: coin.id,
         symbol: coin.symbol,
         name: coin.name,
+        image: coin.image,
         allocationPercent: Math.round(allocationPercent * 10) / 10,
         investedAmount: Math.round(investedAmount * 100) / 100,
         currentValue: Math.round(currentValue * 100) / 100,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Wallet, TrendingUp, Target, Clock, Shield, RefreshCw, AlertTriangle } from 'lucide-react';
 import Lottie from 'lottie-react';
 import { PortfolioSimulation, PortfolioRiskProfile } from '../../types';
@@ -64,6 +64,8 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({
   onRiskProfileChange,
   onRefresh
 }) => {
+  const [failedIcons, setFailedIcons] = useState<Record<string, boolean>>({});
+
   if (!portfolio) {
     return (
       <div className="loading-container">
@@ -180,13 +182,31 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({
                 <tbody>
                   {portfolio.allocations.map((alloc, i) => {
                     const allocationColor = `hsl(${i * 72}, 65%, 50%)`;
+                    const symbol = alloc.symbol.toUpperCase();
+                    const iconKey = alloc.coinId || symbol;
+                    const showLogo = Boolean(alloc.image) && !failedIcons[iconKey];
                     return (
                       <tr key={alloc.coinId}>
                         <td>
                           <div className="allocation-coin">
-                            <span className="allocation-rank-badge" style={{ background: allocationColor }}>
-                              {i + 1}
-                            </span>
+                            {showLogo ? (
+                              <img
+                                className="allocation-coin-icon"
+                                src={alloc.image}
+                                alt={alloc.name}
+                                loading="lazy"
+                                onError={() =>
+                                  setFailedIcons((prev) => ({
+                                    ...prev,
+                                    [iconKey]: true,
+                                  }))
+                                }
+                              />
+                            ) : (
+                              <span className="allocation-rank-badge" style={{ background: allocationColor }} title={symbol}>
+                                {symbol}
+                              </span>
+                            )}
                             <div>
                               <div className="allocation-coin-name">{alloc.name}</div>
                               <div className="allocation-coin-symbol">{alloc.symbol}</div>

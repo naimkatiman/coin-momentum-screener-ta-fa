@@ -4,6 +4,23 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+function getUnhandledRejectionMessage(reason: unknown): string {
+  if (typeof reason === 'string') return reason;
+  if (reason instanceof Error) return reason.message;
+  if (typeof reason === 'object' && reason !== null && 'message' in reason) {
+    const { message } = reason as { message?: unknown };
+    return typeof message === 'string' ? message : '';
+  }
+  return '';
+}
+
+window.addEventListener('unhandledrejection', (event) => {
+  const message = getUnhandledRejectionMessage(event.reason).toLowerCase();
+  if (message.includes('talisman extension has not been configured yet')) {
+    event.preventDefault();
+  }
+});
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );

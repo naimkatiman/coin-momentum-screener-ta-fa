@@ -100,6 +100,7 @@ export interface PortfolioSimulation {
     coinId: string;
     symbol: string;
     name: string;
+    image: string;
     allocationPercent: number;
     investedAmount: number;
     currentValue: number;
