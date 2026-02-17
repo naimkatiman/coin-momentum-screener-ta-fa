@@ -5,11 +5,15 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev:cloudflare": "npm run build:client && npx wrangler dev",
     "server": "cd server && npm run dev",
     "client": "cd client && npm start",
-    "build": "cd client && npm run build",
+    "build:client": "cd client && npm run build",
+    "build": "npm run build:client",
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
-    "start": "cd server && npm start"
+    "start": "cd server && npm start",
+    "cf:whoami": "npx wrangler whoami",
+    "cf:deploy": "npm run build:client && npx wrangler deploy"
   },
   "keywords": [
     "crypto",

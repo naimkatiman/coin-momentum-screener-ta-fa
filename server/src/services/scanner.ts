@@ -7,16 +7,16 @@ import { TechnicalAnalysisEngine } from './technicalAnalysis';
 import { FundamentalAnalysisEngine } from './fundamentalAnalysis';
 import { MomentumScoringEngine } from './momentumScoring';
 import { ScannedCoin, ScannerFilters, PortfolioSimulation, CoinMarketData } from '../types';
-import NodeCache from 'node-cache';
+import { TTLCache } from '../utils/ttlCache';
 
-const scanCache = new NodeCache({ stdTTL: 120 });
+const scanCache = new TTLCache(120);
 
 export class ScannerService {
 
   // ============================================================
   // Full Scanner - Analyze top coins with TA + FA
   // ============================================================
-  static async scanMarket(filters: ScannerFilters = {}): Promise<ScannedCoin[]> {
+  static async scanMarket(filters: ScannerFilters = {}, apiKey?: string): Promise<ScannedCoin[]> {
     const cacheKey = `scan_${JSON.stringify(filters)}`;
     const cached = scanCache.get<ScannedCoin[]>(cacheKey);
     if (cached) return cached;
@@ -25,7 +25,7 @@ export class ScannerService {
     const perPage = Math.min(limit, 100);
 
     // Fetch market data with sparklines
-    const marketData = await coinGeckoService.getMarketData(1, perPage, true);
+    const marketData = await coinGeckoService.getMarketData(1, perPage, true, apiKey);
 
     // Process each coin
     const scannedCoins: ScannedCoin[] = [];
@@ -114,17 +114,20 @@ export class ScannerService {
   // ============================================================
   // Detailed Coin Analysis (with OHLC + detail data)
   // ============================================================
-  static async detailedAnalysis(coinId: string): Promise<ScannedCoin & { ohlc: any[]; chartData: any }> {
+  static async detailedAnalysis(
+    coinId: string,
+    apiKey?: string
+  ): Promise<ScannedCoin & { ohlc: any[]; chartData: any }> {
     const cacheKey = `detailed_${coinId}`;
     const cached = scanCache.get<any>(cacheKey);
     if (cached) return cached;
 
     // Fetch all data in parallel
     const [marketDataArr, detail, ohlc, chartData] = await Promise.all([
-      coinGeckoService.getMarketData(1, 250, true),
-      coinGeckoService.getCoinDetail(coinId),
-      coinGeckoService.getOHLC(coinId, 30),
-      coinGeckoService.getMarketChart(coinId, 30),
+      coinGeckoService.getMarketData(1, 250, true, apiKey),
+      coinGeckoService.getCoinDetail(coinId, apiKey),
+      coinGeckoService.getOHLC(coinId, 30, apiKey),
+      coinGeckoService.getMarketChart(coinId, 30, apiKey),
     ]);
 
     const coin = marketDataArr.find(c => c.id === coinId);
@@ -188,14 +191,15 @@ export class ScannerService {
   // ============================================================
   static async simulatePortfolio(
     initialInvestment: number = 100,
-    targetAmount: number = 1000
+    targetAmount: number = 1000,
+    apiKey?: string
   ): Promise<PortfolioSimulation> {
     // Get top momentum coins
     const scanned = await this.scanMarket({ 
       sortBy: 'momentum',
       limit: 50,
       minMomentumScore: 55
-    });
+    }, apiKey);
 
     // Select top 5 coins by momentum with diversification
     const selected = scanned.slice(0, 5);

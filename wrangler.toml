@@ -1,0 +1,15 @@
+name = "coin-momentum-screener-ta-fa"
+main = "src/index.ts"
+compatibility_date = "2026-02-17"
+workers_dev = true
+
+[assets]
+directory = "./client/build"
+binding = "ASSETS"
+
+[vars]
+# Set this with:
+# npx wrangler secret put COINGECKO_API_KEY
+
+[observability.logs]
+enabled = true

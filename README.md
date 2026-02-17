@@ -34,17 +34,21 @@ The **Coin Momentum Screener** is a professional-grade cryptocurrency analysis p
 
 ```
 coin-momentum-screener-ta-fa/
-+-- server/                    # Node.js + TypeScript Backend
++-- src/
+|   +-- index.ts               # Cloudflare Worker entry point (/api + static assets)
++-- server/                    # Shared TA/FA engines and legacy Node API runtime
 |   +-- src/
-|   |   +-- index.ts           # Express server entry point
+|   |   +-- index.ts           # Legacy Express server entry point (optional local use)
 |   |   +-- routes/
-|   |   |   +-- api.ts         # REST API endpoints
+|   |   |   +-- api.ts         # Legacy REST API endpoints
 |   |   +-- services/
-|   |   |   +-- coingecko.ts   # CoinGecko API integration with caching
+|   |   |   +-- coingecko.ts   # CoinGecko API integration (fetch + TTL cache)
 |   |   |   +-- technicalAnalysis.ts    # TA engine (RSI, MACD, BB, etc.)
 |   |   |   +-- fundamentalAnalysis.ts  # FA engine (community, dev, sentiment)
 |   |   |   +-- momentumScoring.ts      # Composite scoring system
 |   |   |   +-- scanner.ts     # Market scanner orchestrator
+|   |   +-- utils/
+|   |       +-- ttlCache.ts    # Lightweight runtime-agnostic cache
 |   |   +-- types/
 |   |   |   +-- index.ts       # TypeScript type definitions
 |   |   +-- middleware/
@@ -67,7 +71,8 @@ coin-momentum-screener-ta-fa/
 |   |   +-- types/
 |   |       +-- index.ts       # Frontend type definitions
 |   +-- package.json
-+-- package.json               # Root orchestration
++-- wrangler.toml              # Cloudflare Worker configuration
++-- package.json               # Root orchestration + Cloudflare scripts
 +-- README.md
 ```
 
@@ -138,6 +143,7 @@ The momentum score combines Technical (60%) and Fundamental (40%) analysis:
 
 - Node.js >= 18.0.0
 - npm >= 9.0.0
+- Cloudflare account + Wrangler auth
 - CoinGecko API Key (free tier works)
 
 ### Installation
@@ -149,47 +155,50 @@ cd coin-momentum-screener-ta-fa
 
 # Install all dependencies
 npm run install-all
-
-# Set up environment variables
-cp server/.env.example server/.env
-# Edit server/.env with your CoinGecko API key
 ```
 
-### Configuration
-
-Create `server/.env`:
-
-```env
-COINGECKO_API_KEY=your_api_key_here
-PORT=5000
-NODE_ENV=development
-```
-
-### Running
+### Cloudflare Configuration
 
 ```bash
-# Development (both server & client)
-npm run dev
+# Authenticate Wrangler (one-time, interactive)
+npx wrangler whoami
 
-# Server only
-npm run server
+# Add CoinGecko key as a Worker secret
+npx wrangler secret put COINGECKO_API_KEY
+```
 
-# Client only
-npm run client
+### Run Locally (Cloudflare Worker)
+
+```bash
+# Build React app and run Worker locally (serves UI + /api)
+npm run dev:cloudflare
 ```
 
 The app will be available at:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000/api
+- **Frontend + API**: http://localhost:8787
+
+### Deploy to Cloudflare (Serverless)
+
+```bash
+# Build and deploy Worker + static assets
+npm run cf:deploy
+```
+
+### Optional Legacy Node Development
+
+```bash
+# Runs React client + Express API (legacy runtime path)
+npm run dev
+```
 
 ## Tech Stack
 
 ### Backend
-- **Node.js** + **Express** - HTTP server
+- **Cloudflare Workers** - Serverless edge runtime for API + static asset hosting
 - **TypeScript** - Type safety
-- **Axios** - HTTP client for CoinGecko API
-- **node-cache** - In-memory caching (60s market data, 300s detail data)
-- **express-rate-limit** - API rate limiting
+- **Native fetch** - CoinGecko API requests
+- **In-memory TTL cache** - Request/result caching in Worker isolate
+- **Express (optional)** - Legacy local backend runtime kept in `server/`
 
 ### Frontend
 - **React 19** - UI framework

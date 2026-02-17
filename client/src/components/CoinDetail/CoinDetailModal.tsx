@@ -167,6 +167,8 @@ export const CoinDetailModal: React.FC<CoinDetailModalProps> = ({ coinId, detail
             <TradingViewMiniChart
               symbol={detail.symbol}
               coinId={coinId}
+              sparkline={detail.sparkline}
+              priceChange7d={detail.priceChange7d}
               height={220}
             />
           </div>
