@@ -6,7 +6,13 @@ import { coinGeckoService } from './coingecko';
 import { TechnicalAnalysisEngine } from './technicalAnalysis';
 import { FundamentalAnalysisEngine } from './fundamentalAnalysis';
 import { MomentumScoringEngine } from './momentumScoring';
-import { ScannedCoin, ScannerFilters, PortfolioSimulation, CoinMarketData } from '../types';
+import {
+  ScannedCoin,
+  ScannerFilters,
+  PortfolioSimulation,
+  CoinMarketData,
+  PortfolioRiskProfile,
+} from '../types';
 import { TTLCache } from '../utils/ttlCache';
 
 const scanCache = new TTLCache(120);
@@ -192,19 +198,78 @@ export class ScannerService {
   static async simulatePortfolio(
     initialInvestment: number = 100,
     targetAmount: number = 1000,
+    riskProfile: PortfolioRiskProfile = 'medium',
     apiKey?: string
   ): Promise<PortfolioSimulation> {
-    // Get top momentum coins
-    const scanned = await this.scanMarket({ 
+    const minMomentumByProfile: Record<PortfolioRiskProfile, number> = {
+      low: 58,
+      medium: 55,
+      high: 50,
+    };
+
+    const scanned = await this.scanMarket({
       sortBy: 'momentum',
-      limit: 50,
-      minMomentumScore: 55
+      limit: 80,
+      minMomentumScore: minMomentumByProfile[riskProfile]
     }, apiKey);
 
-    // Select top 5 coins by momentum with diversification
-    const selected = scanned.slice(0, 5);
-    
+    const riskRank = { LOW: 1, MEDIUM: 2, HIGH: 3, EXTREME: 4 } as const;
+    const riskScoreMap = { LOW: 20, MEDIUM: 40, HIGH: 65, EXTREME: 90 } as const;
+    const allowedRiskLevels: Record<PortfolioRiskProfile, Array<keyof typeof riskRank>> = {
+      low: ['LOW', 'MEDIUM'],
+      medium: ['LOW', 'MEDIUM', 'HIGH'],
+      high: ['MEDIUM', 'HIGH', 'EXTREME'],
+    };
+
+    const profileScore = (coin: ScannedCoin): number => {
+      const base = coin.momentumScore.overallScore;
+      const confidence = coin.momentumScore.confidence;
+      const potential = coin.momentumScore.potentialMultiplier;
+      const riskBucket = riskRank[coin.momentumScore.riskLevel];
+      const marketCapStrength = Math.log10(Math.max(coin.marketCap, 1));
+      const weeklyVolatility = Math.abs(coin.priceChange7d || 0);
+
+      if (riskProfile === 'low') {
+        return (
+          base * 0.58 +
+          confidence * 0.26 +
+          marketCapStrength * 3.2 -
+          riskBucket * 13 -
+          weeklyVolatility * 0.16
+        );
+      }
+
+      if (riskProfile === 'high') {
+        return (
+          base * 0.45 +
+          potential * 13 +
+          Math.max(coin.priceChange7d, 0) * 0.35 +
+          weeklyVolatility * 0.18 -
+          riskBucket * 4
+        );
+      }
+
+      return (
+        base * 0.57 +
+        potential * 9 +
+        confidence * 0.16 -
+        riskBucket * 7 -
+        weeklyVolatility * 0.08
+      );
+    };
+
+    const scored = scanned.map((coin) => ({ coin, score: profileScore(coin) }));
+    const filteredScored = scored.filter(({ coin }) =>
+      allowedRiskLevels[riskProfile].includes(coin.momentumScore.riskLevel)
+    );
+
+    const candidatePool = (filteredScored.length >= 5 ? filteredScored : scored)
+      .sort((a, b) => b.score - a.score);
+
+    const selected = candidatePool.slice(0, 5);
+
     if (selected.length === 0) {
+      const fallbackDays = riskProfile === 'low' ? 90 : riskProfile === 'medium' ? 70 : 50;
       return {
         initialInvestment,
         targetAmount,
@@ -212,18 +277,60 @@ export class ScannerService {
         totalReturn: 0,
         totalReturnPercent: 0,
         allocations: [],
-        projectedDays: 365,
+        projectedDays: fallbackDays,
         riskScore: 50,
+        riskProfile,
       };
     }
 
-    // Allocate based on momentum scores
-    const totalScore = selected.reduce((sum, c) => sum + c.momentumScore.overallScore, 0);
-    
-    const allocations = selected.map(coin => {
-      const allocationPercent = (coin.momentumScore.overallScore / totalScore) * 100;
+    const allocationExponentByProfile: Record<PortfolioRiskProfile, number> = {
+      low: 0.9,
+      medium: 1,
+      high: 1.24,
+    };
+    const returnAdjustmentByProfile: Record<PortfolioRiskProfile, number> = {
+      low: 0.88,
+      medium: 1,
+      high: 1.12,
+    };
+    const projectionHorizonByProfile: Record<PortfolioRiskProfile, number> = {
+      low: 60,
+      medium: 45,
+      high: 30,
+    };
+    const maxProjectedDaysByProfile: Record<PortfolioRiskProfile, number> = {
+      low: 90,
+      medium: 70,
+      high: 50,
+    };
+
+    const weighted = selected.map(({ coin, score }) => {
+      const riskBucket = riskRank[coin.momentumScore.riskLevel];
+      const baseWeight = Math.pow(Math.max(22, score + 70), allocationExponentByProfile[riskProfile]);
+
+      if (riskProfile === 'low') {
+        return {
+          coin,
+          weight: baseWeight * Math.max(0.65, 1 - (riskBucket - 1) * 0.14),
+        };
+      }
+
+      if (riskProfile === 'high') {
+        return {
+          coin,
+          weight: baseWeight * (1 + (riskBucket - 2) * 0.12),
+        };
+      }
+
+      return { coin, weight: baseWeight };
+    });
+
+    const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+
+    const allocations = weighted.map(({ coin, weight }) => {
+      const allocationPercent = (weight / totalWeight) * 100;
       const investedAmount = (allocationPercent / 100) * initialInvestment;
-      const projectedReturn = coin.momentumScore.potentialMultiplier;
+      const projectedReturn = coin.momentumScore.potentialMultiplier * returnAdjustmentByProfile[riskProfile];
       const currentValue = investedAmount * projectedReturn;
       
       return {
@@ -241,17 +348,16 @@ export class ScannerService {
     const totalReturn = currentValue - initialInvestment;
     const totalReturnPercent = (totalReturn / initialInvestment) * 100;
 
-    // Estimate days to target
-    const dailyReturn = totalReturnPercent / 30; // Based on 30-day projection
+    const dailyReturn = totalReturnPercent / projectionHorizonByProfile[riskProfile];
     const multiplierNeeded = targetAmount / initialInvestment;
-    const projectedDays = dailyReturn > 0 
+    const rawProjectedDays = dailyReturn > 0 
       ? Math.ceil(Math.log(multiplierNeeded) / Math.log(1 + dailyReturn / 100))
-      : 365;
+      : maxProjectedDaysByProfile[riskProfile];
 
-    // Risk assessment
-    const avgRisk = selected.reduce((sum, c) => {
-      const riskMap = { LOW: 20, MEDIUM: 40, HIGH: 60, EXTREME: 90 };
-      return sum + riskMap[c.momentumScore.riskLevel];
+    const projectedDays = Math.max(7, Math.min(rawProjectedDays, maxProjectedDaysByProfile[riskProfile]));
+
+    const avgRisk = selected.reduce((sum, item) => {
+      return sum + riskScoreMap[item.coin.momentumScore.riskLevel];
     }, 0) / selected.length;
 
     return {
@@ -261,8 +367,9 @@ export class ScannerService {
       totalReturn: Math.round(totalReturn * 100) / 100,
       totalReturnPercent: Math.round(totalReturnPercent * 100) / 100,
       allocations,
-      projectedDays: Math.min(projectedDays, 365),
+      projectedDays,
       riskScore: Math.round(avgRisk),
+      riskProfile,
     };
   }
 

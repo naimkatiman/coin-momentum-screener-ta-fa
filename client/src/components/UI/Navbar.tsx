@@ -33,10 +33,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, lastUpda
             return (
               <button
                 key={tab.id}
+                type="button"
                 className={`nav-tab ${isActive ? 'active' : ''}`}
                 onClick={() => onTabChange(tab.id)}
                 role="tab"
                 aria-selected={isActive}
+                aria-controls={`${tab.id}-section`}
+                id={`tab-${tab.id}`}
               >
                 {isActive && (
                   <motion.span

@@ -5,7 +5,7 @@
 import { Router, Request, Response } from 'express';
 import { ScannerService } from '../services/scanner';
 import { coinGeckoService } from '../services/coingecko';
-import { ScannerFilters } from '../types';
+import { PortfolioRiskProfile, ScannerFilters } from '../types';
 
 export const router = Router();
 
@@ -65,8 +65,11 @@ router.get('/portfolio/simulate', async (req: Request, res: Response) => {
   try {
     const initial = Number(req.query.initial) || 100;
     const target = Number(req.query.target) || 1000;
-    
-    const result = await ScannerService.simulatePortfolio(initial, target);
+    const requestedRisk = String(req.query.risk || 'medium').toLowerCase();
+    const riskProfile: PortfolioRiskProfile =
+      requestedRisk === 'low' || requestedRisk === 'high' ? requestedRisk : 'medium';
+
+    const result = await ScannerService.simulatePortfolio(initial, target, riskProfile);
     
     res.json({
       success: true,

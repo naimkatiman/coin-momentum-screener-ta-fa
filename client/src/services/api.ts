@@ -3,7 +3,7 @@
 // ============================================================
 
 import axios from 'axios';
-import { ScannedCoin, PortfolioSimulation, TrendingCoin, GlobalData } from '../types';
+import { ScannedCoin, PortfolioSimulation, PortfolioRiskProfile, TrendingCoin, GlobalData } from '../types';
 
 const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
@@ -36,8 +36,14 @@ export const apiService = {
   },
 
   // Portfolio Simulation
-  async getPortfolioSimulation(initial: number = 100, target: number = 1000): Promise<PortfolioSimulation> {
-    const { data } = await api.get('/portfolio/simulate', { params: { initial, target } });
+  async getPortfolioSimulation(
+    initial: number = 100,
+    target: number = 1000,
+    risk: PortfolioRiskProfile = 'medium'
+  ): Promise<PortfolioSimulation> {
+    const { data } = await api.get('/portfolio/simulate', {
+      params: { initial, target, risk, ts: Date.now() },
+    });
     return data.data;
   },
 

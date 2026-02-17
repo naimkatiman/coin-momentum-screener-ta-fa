@@ -107,7 +107,10 @@ export interface PortfolioSimulation {
   }[];
   projectedDays: number;
   riskScore: number;
+  riskProfile: PortfolioRiskProfile;
 }
+
+export type PortfolioRiskProfile = 'low' | 'medium' | 'high';
 
 export interface TrendingCoin {
   id: string;

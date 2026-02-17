@@ -12,7 +12,14 @@ import { CoinDetailModal } from './components/CoinDetail/CoinDetailModal';
 import { WebGLBackdrop } from './components/Effects/WebGLBackdrop';
 import { SplineShowcase } from './components/Effects/SplineShowcase';
 import { apiService } from './services/api';
-import { ScannedCoin, GlobalData, PortfolioSimulation, SortOption, SignalFilter } from './types';
+import {
+  ScannedCoin,
+  GlobalData,
+  PortfolioSimulation,
+  PortfolioRiskProfile,
+  SortOption,
+  SignalFilter
+} from './types';
 
 type TabType = 'scanner' | 'portfolio';
 
@@ -25,12 +32,18 @@ const formatCompactCurrency = (value: number) => {
 
 function App() {
   const appRef = useRef<HTMLDivElement>(null);
-  const scannerAnchorRef = useRef<HTMLDivElement>(null);
+  const viewAnchorRef = useRef<HTMLDivElement>(null);
+  const scannerSectionRef = useRef<HTMLElement>(null);
+  const portfolioSectionRef = useRef<HTMLElement>(null);
+  const pendingTabScrollRef = useRef<TabType | null>(null);
+  const portfolioRequestIdRef = useRef(0);
 
   const [activeTab, setActiveTab] = useState<TabType>('scanner');
   const [coins, setCoins] = useState<ScannedCoin[]>([]);
   const [globalData, setGlobalData] = useState<GlobalData | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioSimulation | null>(null);
+  const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const [portfolioRiskProfile, setPortfolioRiskProfile] = useState<PortfolioRiskProfile>('medium');
   const [selectedCoin, setSelectedCoin] = useState<string | null>(null);
   const [coinDetail, setCoinDetail] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -58,12 +71,20 @@ function App() {
     }
   }, [sortBy]);
 
-  const fetchPortfolio = useCallback(async () => {
+  const fetchPortfolio = useCallback(async (riskProfile: PortfolioRiskProfile) => {
+    const requestId = ++portfolioRequestIdRef.current;
+    setPortfolioLoading(true);
     try {
-      const data = await apiService.getPortfolioSimulation(100, 1000);
-      setPortfolio(data);
+      const data = await apiService.getPortfolioSimulation(100, 1000, riskProfile);
+      if (requestId === portfolioRequestIdRef.current) {
+        setPortfolio(data);
+      }
     } catch (err) {
       console.error('Portfolio error:', err);
+    } finally {
+      if (requestId === portfolioRequestIdRef.current) {
+        setPortfolioLoading(false);
+      }
     }
   }, []);
 
@@ -72,10 +93,8 @@ function App() {
   }, [fetchData]);
 
   useEffect(() => {
-    if (activeTab === 'portfolio' && !portfolio) {
-      fetchPortfolio();
-    }
-  }, [activeTab, portfolio, fetchPortfolio]);
+    fetchPortfolio(portfolioRiskProfile);
+  }, [fetchPortfolio, portfolioRiskProfile]);
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -162,10 +181,45 @@ function App() {
     setCoinDetail(null);
   };
 
+  const scrollToView = useCallback((tab: TabType, behavior: ScrollBehavior = 'smooth') => {
+    const sectionTarget = tab === 'portfolio' ? portfolioSectionRef.current : scannerSectionRef.current;
+    (sectionTarget ?? viewAnchorRef.current)?.scrollIntoView({ behavior, block: 'start' });
+  }, []);
+
+  const handleTabChange = useCallback(
+    (tab: TabType) => {
+      pendingTabScrollRef.current = tab;
+      setActiveTab((prev) => (prev === tab ? prev : tab));
+      if (activeTab === tab) {
+        scrollToView(tab);
+        pendingTabScrollRef.current = null;
+      }
+    },
+    [activeTab, scrollToView]
+  );
+
+  useEffect(() => {
+    if (pendingTabScrollRef.current !== activeTab) return;
+    const timeoutId = window.setTimeout(() => {
+      scrollToView(activeTab);
+      pendingTabScrollRef.current = null;
+    }, 36);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [activeTab, scrollToView]);
+
   const handleLaunchScanner = () => {
-    setActiveTab('scanner');
-    scannerAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    handleTabChange('scanner');
   };
+
+  const handlePortfolioRefresh = useCallback(() => {
+    fetchPortfolio(portfolioRiskProfile);
+  }, [fetchPortfolio, portfolioRiskProfile]);
+
+  const handlePortfolioRiskChange = useCallback((nextProfile: PortfolioRiskProfile) => {
+    if (nextProfile === portfolioRiskProfile) return;
+    setPortfolioRiskProfile(nextProfile);
+  }, [portfolioRiskProfile]);
 
   const filteredCoins = signalFilter === 'ALL' ? coins : coins.filter((coin) => coin.momentumScore.signal === signalFilter);
 
@@ -197,7 +251,7 @@ function App() {
       <WebGLBackdrop />
       <div className="atmosphere-layer" aria-hidden="true" />
 
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} lastUpdated={lastUpdated} />
+      <Navbar activeTab={activeTab} onTabChange={handleTabChange} lastUpdated={lastUpdated} />
 
       <header className="hero-shell">
         <div className="hero-grid">
@@ -223,7 +277,7 @@ function App() {
               </button>
               <button
                 className="hero-btn hero-btn-ghost"
-                onClick={() => setActiveTab(activeTab === 'scanner' ? 'portfolio' : 'scanner')}
+                onClick={() => handleTabChange(activeTab === 'scanner' ? 'portfolio' : 'scanner')}
               >
                 {activeTab === 'scanner' ? 'Open Portfolio Lab' : 'Return to Scanner'}
               </button>
@@ -267,7 +321,7 @@ function App() {
                 <Brain size={15} />
                 Figma-grade spatial composition
               </div>
-              <SplineShowcase />
+              <SplineShowcase portfolio={portfolio} />
               <div className="scene-meta">
                 <Radar size={14} />
                 WebGL + Spline stage for immersive storytelling
@@ -284,13 +338,17 @@ function App() {
           </div>
         )}
 
-        <div ref={scannerAnchorRef} />
+        <div ref={viewAnchorRef} className="view-anchor" />
 
         <AnimatePresence mode="wait" initial={false}>
           {activeTab === 'scanner' ? (
             <motion.section
               key="scanner"
+              id="scanner-section"
+              ref={scannerSectionRef}
               className="reveal-up"
+              role="tabpanel"
+              aria-labelledby="tab-scanner"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -14 }}
@@ -311,13 +369,23 @@ function App() {
           ) : (
             <motion.section
               key="portfolio"
+              id="portfolio-section"
+              ref={portfolioSectionRef}
               className="reveal-up"
+              role="tabpanel"
+              aria-labelledby="tab-portfolio"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -14 }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
-              <PortfolioView portfolio={portfolio} loading={!portfolio} onRefresh={fetchPortfolio} />
+              <PortfolioView
+                portfolio={portfolio}
+                loading={portfolioLoading}
+                riskProfile={portfolioRiskProfile}
+                onRiskProfileChange={handlePortfolioRiskChange}
+                onRefresh={handlePortfolioRefresh}
+              />
             </motion.section>
           )}
         </AnimatePresence>

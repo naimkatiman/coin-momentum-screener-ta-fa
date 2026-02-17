@@ -98,7 +98,9 @@ async function handleApi(request: Request, url: URL, env: Env): Promise<Response
     if (path === '/api/portfolio/simulate') {
       const initial = parseNumber(url.searchParams.get('initial')) || 100;
       const target = parseNumber(url.searchParams.get('target')) || 1000;
-      const result = await ScannerService.simulatePortfolio(initial, target, apiKey);
+      const requestedRisk = (url.searchParams.get('risk') || 'medium').toLowerCase();
+      const riskProfile = requestedRisk === 'low' || requestedRisk === 'high' ? requestedRisk : 'medium';
+      const result = await ScannerService.simulatePortfolio(initial, target, riskProfile, apiKey);
       return jsonResponse({
         success: true,
         timestamp: new Date().toISOString(),

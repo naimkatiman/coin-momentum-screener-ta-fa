@@ -1,123 +1,96 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useMemo, useRef, useState, memo } from 'react';
+import { MiniSparkline } from './MiniSparkline';
+import { resolveTradingViewSymbol } from './tradingViewSymbols';
 
 interface TradingViewTableChartProps {
-  symbol: string;   // CoinGecko symbol like "btc", "eth"
-  coinId: string;   // CoinGecko ID like "bitcoin", "ethereum"
+  symbol: string;
+  coinId: string;
+  sparkline?: number[];
+  priceChange7d?: number;
   width?: number;
   height?: number;
 }
 
-// Map common CoinGecko coin IDs to TradingView symbols on Binance
-const SYMBOL_MAP: Record<string, string> = {
-  bitcoin: 'BINANCE:BTCUSDT',
-  ethereum: 'BINANCE:ETHUSDT',
-  tether: 'BINANCE:BTCUSDT',
-  binancecoin: 'BINANCE:BNBUSDT',
-  solana: 'BINANCE:SOLUSDT',
-  ripple: 'BINANCE:XRPUSDT',
-  'usd-coin': 'BINANCE:BTCUSDT',
-  cardano: 'BINANCE:ADAUSDT',
-  dogecoin: 'BINANCE:DOGEUSDT',
-  tron: 'BINANCE:TRXUSDT',
-  avalanche: 'BINANCE:AVAXUSDT',
-  polkadot: 'BINANCE:DOTUSDT',
-  chainlink: 'BINANCE:LINKUSDT',
-  'shiba-inu': 'BINANCE:SHIBUSDT',
-  polygon: 'BINANCE:MATICUSDT',
-  'matic-network': 'BINANCE:MATICUSDT',
-  litecoin: 'BINANCE:LTCUSDT',
-  dai: 'BINANCE:BTCUSDT',
-  uniswap: 'BINANCE:UNIUSDT',
-  cosmos: 'BINANCE:ATOMUSDT',
-  stellar: 'BINANCE:XLMUSDT',
-  monero: 'BINANCE:XMRUSDT',
-  'bitcoin-cash': 'BINANCE:BCHUSDT',
-  'ethereum-classic': 'BINANCE:ETCUSDT',
-  filecoin: 'BINANCE:FILUSDT',
-  'internet-computer': 'BINANCE:ICPUSDT',
-  hedera: 'BINANCE:HBARUSDT',
-  'hedera-hashgraph': 'BINANCE:HBARUSDT',
-  aptos: 'BINANCE:APTUSDT',
-  arbitrum: 'BINANCE:ARBUSDT',
-  optimism: 'BINANCE:OPUSDT',
-  vechain: 'BINANCE:VETUSDT',
-  near: 'BINANCE:NEARUSDT',
-  'near-protocol': 'BINANCE:NEARUSDT',
-  algorand: 'BINANCE:ALGOUSDT',
-  aave: 'BINANCE:AAVEUSDT',
-  'the-graph': 'BINANCE:GRTUSDT',
-  fantom: 'BINANCE:FTMUSDT',
-  'the-sandbox': 'BINANCE:SANDUSDT',
-  decentraland: 'BINANCE:MANAUSDT',
-  'axie-infinity': 'BINANCE:AXSUSDT',
-  eos: 'BINANCE:EOSUSDT',
-  'flow-token': 'BINANCE:FLOWUSDT',
-  flow: 'BINANCE:FLOWUSDT',
-  tezos: 'BINANCE:XTZUSDT',
-  theta: 'BINANCE:THETAUSDT',
-  'theta-token': 'BINANCE:THETAUSDT',
-  iota: 'BINANCE:IOTAUSDT',
-  'render-token': 'BINANCE:RENDERUSDT',
-  injective: 'BINANCE:INJUSDT',
-  'injective-protocol': 'BINANCE:INJUSDT',
-  sei: 'BINANCE:SEIUSDT',
-  'sei-network': 'BINANCE:SEIUSDT',
-  sui: 'BINANCE:SUIUSDT',
-  celestia: 'BINANCE:TIAUSDT',
-  pepe: 'BINANCE:PEPEUSDT',
-  kaspa: 'BINANCE:KASUSDT',
-  bonk: 'BINANCE:BONKUSDT',
-  jupiter: 'BINANCE:JUPUSDT',
-  'staked-ether': 'BINANCE:ETHUSDT',
-  'wrapped-bitcoin': 'BINANCE:BTCUSDT',
-  maker: 'BINANCE:MKRUSDT',
-  'leo-token': 'BINANCE:BTCUSDT',
-  okb: 'OKX:OKBUSDT',
-  cronos: 'BINANCE:CROUSDT',
-  'crypto-com-chain': 'BINANCE:CROUSDT',
-  immutable: 'BINANCE:IMXUSDT',
-  'immutable-x': 'BINANCE:IMXUSDT',
-  fetch: 'BINANCE:FETUSDT',
-  'fetch-ai': 'BINANCE:FETUSDT',
-  worldcoin: 'BINANCE:WLDUSDT',
-  'worldcoin-wld': 'BINANCE:WLDUSDT',
-  ondo: 'BINANCE:ONDOUSDT',
-  'ondo-finance': 'BINANCE:ONDOUSDT',
-  floki: 'BINANCE:FLOKIUSDT',
-  'floki-inu': 'BINANCE:FLOKIUSDT',
-  pendle: 'BINANCE:PENDLEUSDT',
-  pyth: 'BINANCE:PYTHUSDT',
-  'pyth-network': 'BINANCE:PYTHUSDT',
-  'starknet-token': 'BINANCE:STRKUSDT',
-  starknet: 'BINANCE:STRKUSDT',
-};
+function getTrendColors(isBullish: boolean) {
+  if (isBullish) {
+    return {
+      line: 'rgba(16, 185, 129, 1)',
+      underLine: 'rgba(16, 185, 129, 0.24)',
+      underLineBottom: 'rgba(16, 185, 129, 0)',
+    };
+  }
 
-function getTradingViewSymbol(coinId: string, symbol: string): string {
-  const mapped = SYMBOL_MAP[coinId.toLowerCase()];
-  if (mapped) return mapped;
-  const sym = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  return `BINANCE:${sym}USDT`;
+  return {
+    line: 'rgba(244, 63, 94, 1)',
+    underLine: 'rgba(244, 63, 94, 0.24)',
+    underLineBottom: 'rgba(244, 63, 94, 0)',
+  };
 }
 
 /**
- * Compact TradingView Mini Chart for use inside scanner table cells.
- * Uses chartOnly mode with no time scale - just the price line chart.
+ * Compact TradingView 7D chart for scanner table cells.
+ * Lazy mounts while visible to keep initial table rendering fast.
  */
 const TradingViewTableChart: React.FC<TradingViewTableChartProps> = ({
   symbol,
   coinId,
+  sparkline = [],
+  priceChange7d,
   width = 160,
   height = 60,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
+  const [isInView, setIsInView] = useState(false);
+  const [useSparklineFallback, setUseSparklineFallback] = useState(false);
+
+  const isBullish = useMemo(() => {
+    if (typeof priceChange7d === 'number') return priceChange7d >= 0;
+    if (sparkline.length >= 2) return sparkline[sparkline.length - 1] >= sparkline[0];
+    return true;
+  }, [priceChange7d, sparkline]);
+
+  const trendColors = useMemo(() => getTrendColors(isBullish), [isBullish]);
+  const tvSymbol = useMemo(() => resolveTradingViewSymbol(coinId, symbol), [coinId, symbol]);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    setUseSparklineFallback(false);
+  }, [coinId, symbol]);
 
-    container.innerHTML = '';
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
 
-    const tvSymbol = getTradingViewSymbol(coinId, symbol);
+    if (!('IntersectionObserver' in window)) {
+      setIsInView(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      {
+        root: null,
+        rootMargin: '160px 0px',
+        threshold: 0.01,
+      }
+    );
+
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const widgetHost = widgetRef.current;
+    if (!widgetHost) return;
+
+    if (!tvSymbol || !isInView || useSparklineFallback) {
+      widgetHost.innerHTML = '';
+      return;
+    }
+
+    widgetHost.innerHTML = '';
 
     const widgetContainer = document.createElement('div');
     widgetContainer.className = 'tradingview-widget-container';
@@ -136,14 +109,14 @@ const TradingViewTableChart: React.FC<TradingViewTableChartProps> = ({
     script.async = true;
     script.textContent = JSON.stringify({
       symbol: tvSymbol,
-      width: width,
-      height: height,
+      width,
+      height,
       locale: 'en',
       dateRange: '7D',
       colorTheme: 'light',
-      trendLineColor: 'rgba(15, 118, 110, 1)',
-      underLineColor: 'rgba(15, 118, 110, 0.18)',
-      underLineBottomColor: 'rgba(15, 118, 110, 0)',
+      trendLineColor: trendColors.line,
+      underLineColor: trendColors.underLine,
+      underLineBottomColor: trendColors.underLineBottom,
       isTransparent: true,
       autosize: false,
       largeChartUrl: '',
@@ -152,26 +125,44 @@ const TradingViewTableChart: React.FC<TradingViewTableChartProps> = ({
     });
 
     widgetContainer.appendChild(script);
-    container.appendChild(widgetContainer);
+    widgetHost.appendChild(widgetContainer);
+
+    const fallbackTimer = window.setTimeout(() => {
+      const text = widgetHost.textContent?.toLowerCase() || '';
+      if (text.includes('invalid symbol') || text.includes('no data here yet')) {
+        setUseSparklineFallback(true);
+      }
+    }, 2600);
 
     return () => {
-      if (container) {
-        container.innerHTML = '';
-      }
+      window.clearTimeout(fallbackTimer);
+      widgetHost.innerHTML = '';
     };
-  }, [coinId, symbol, width, height]);
+  }, [height, isInView, tvSymbol, trendColors, useSparklineFallback, width]);
+
+  const shouldUseSparkline = useSparklineFallback || !tvSymbol || !isInView;
 
   return (
     <div
-      ref={containerRef}
+      ref={rootRef}
       className="tv-table-chart"
       style={{
         width: `${width}px`,
         height: `${height}px`,
         overflow: 'hidden',
-        borderRadius: '4px',
+        borderRadius: '6px',
       }}
-    />
+    >
+      {shouldUseSparkline ? (
+        sparkline.length >= 2 ? (
+          <MiniSparkline data={sparkline} color={trendColors.line} width="100%" height={height} />
+        ) : (
+          <div className="tv-table-fallback-text">Chart unavailable</div>
+        )
+      ) : (
+        <div ref={widgetRef} style={{ width: '100%', height: '100%' }} />
+      )}
+    </div>
   );
 };
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { RefreshCw, Zap, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import Lottie from 'lottie-react';
 import { ScannedCoin, SortOption, SignalFilter } from '../../types';
-import { MiniSparkline } from '../Charts/MiniSparkline';
+import TradingViewTableChart from '../Charts/TradingViewTableChart';
 
 // Inline Lottie animation data for crypto/chart loading
 const loadingAnimationData = {
@@ -278,9 +278,11 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
                     {formatLargeNumber(coin.volume24h)}
                   </td>
                   <td>
-                    <MiniSparkline
-                      data={coin.sparkline}
-                      color={coin.priceChange7d >= 0 ? '#10b981' : '#f43f5e'}
+                    <TradingViewTableChart
+                      coinId={coin.id}
+                      symbol={coin.symbol}
+                      sparkline={coin.sparkline}
+                      priceChange7d={coin.priceChange7d}
                       width={160}
                       height={60}
                     />
